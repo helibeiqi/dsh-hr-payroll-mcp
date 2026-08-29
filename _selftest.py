@@ -87,7 +87,7 @@ check(soc["insurance"][-1]["item"]=="工伤" and soc["insurance"][-1]["employer_
 send({"jsonrpc":"2.0","id":4.1,"method":"tools/call","params":{"name":"calc_social_insurance","arguments":{"city":"北京","base":50000}}})
 r = read_until(lambda i: i == 4.1)
 soc = json.loads(r["result"]["content"][0]["text"])
-check(soc["social_base"]==35811, "基数 clamps 至上限 35811 (2025)", f"实际 {soc['social_base']}")
+check(soc["social_base"]==36348, "基数 clamps 至上限 36348 (2026-ref)", f"实际 {soc['social_base']}")
 
 # 5) calc_iit 累计预扣法
 send({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"calc_iit","arguments":{"cum_income":10000,"cum_social_per":2253,"cum_fund_per":1200,"cum_special":0,"months":1,"already_withheld":0}}})
@@ -134,7 +134,7 @@ check(slip["json"]["员工"]=="张三", "工资条员工名")
 send({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"refresh_statutory","arguments":{}}})
 r = read_until(lambda i: i == 9)
 rf = json.loads(r["result"]["content"][0]["text"])
-check(rf["version"]=="2025-ref", "参数库版本 2025-ref")
+check(rf["version"]=="2026-ref", "参数库版本 2026-ref")
 check(rf["cities"]==["北京","上海","深圳","广州","杭州","成都","武汉","天津","重庆","苏州","南京","西安"], "覆盖城市 12")
 
 proc.terminate()
