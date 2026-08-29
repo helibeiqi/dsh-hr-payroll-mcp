@@ -81,18 +81,27 @@ function calcSocial(stat, city, base, opts = {}) {
   const lines = [];
   let empTotal = 0, perTotal = 0;
   for (const [k, v] of Object.entries(c.insurance)) {
-    const e = sb * (v.emp || 0);
-    const p = sb * (v.per || 0) + (v.per_fixed || 0);
+    // 每项保险可单独指定缴费基数上下限（如深圳医保/养老基数不同）；缺省沿用城市级上下限
+    const fl = (v.base_floor !== undefined) ? v.base_floor : c.social_base_floor;
+    const ca = (v.base_cap !== undefined) ? v.base_cap : c.social_base_cap;
+    const ib = clamp(base, fl, ca);
+    const e = ib * (v.emp || 0);
+    const p = ib * (v.per || 0) + (v.per_fixed || 0);
     empTotal += e; perTotal += p;
     lines.push({
-      item: k, base: sb, emp_rate: v.emp || 0, emp_amt: round2(e),
+      item: k, base: ib, emp_rate: v.emp || 0, emp_amt: round2(e),
       per_rate: v.per || 0, per_fixed: v.per_fixed || 0, per_amt: round2(p)
     });
   }
+  // 工伤保险：仅单位缴纳，比例按企业/行业风险分级（各地不同），存于 Company Profile 的 injury_rate，不进城市参数库
+  const injuryRate = opts.injury_rate !== undefined ? opts.injury_rate : 0;
+  const injuryAmt = sb * injuryRate;
+  empTotal += injuryAmt;
+  lines.push({ item: '工伤', base: sb, emp_rate: injuryRate, emp_amt: round2(injuryAmt), per_rate: 0, per_fixed: 0, per_amt: 0, employer_only: true });
   const fundEmp = fb * c.fund.emp, fundPer = fb * c.fund.per;
   empTotal += fundEmp; perTotal += fundPer;
   const fund = { base: fb, emp_rate: c.fund.emp, emp_amt: round2(fundEmp), per_rate: c.fund.per, per_amt: round2(fundPer) };
-  return { city, social_base: sb, fund_base: fb, capped: { social: sb < base || sb > base, note: '基数已 clamps 至上下限' }, insurance: lines, housing_fund: fund, emp_total: round2(empTotal), per_total: round2(perTotal) };
+  return { city, social_base: sb, fund_base: fb, insurance: lines, housing_fund: fund, emp_total: round2(empTotal), per_total: round2(perTotal) };
 }
 function calcIIT(stat, cumIncome, cumSocialPer, cumFundPer, cumSpecial, months, alreadyWithheld) {
   const T = stat.iit.threshold_monthly;
@@ -159,7 +168,8 @@ function defaultProfile() {
     rounding: 'round2',
     special_additional_source: 'per_employee',
     tax_exempt_dict: {},
-    note: '企业配置：属地/公积金比例/薪资拆分比/免税项/舍入/专项附加来源'
+    injury_rate: 0.004,
+    note: '企业配置：属地/公积金比例/薪资拆分比/免税项/舍入/专项附加来源/工伤费率(按行业风险,仅单位缴纳)'
   };
 }
 function loadProfile() {
@@ -178,7 +188,9 @@ function computePayroll(stat, params) {
     cum_income = 0, cum_social_per = 0, cum_fund_per = 0, cum_special = 0,
     months = 1, already_withheld = 0, special_additional = {}
   } = params;
-  const split = (profile && profile.salary_split) || { base: 0.4, post: 0.4, perf: 0.2 };
+  // 解析企业配置：参数 profile > 本地文件 > 内置默认；保证 injury_rate/薪资拆分比始终有默认值
+  const resolved = Object.assign(defaultProfile(), profile || loadProfile() || {});
+  const split = resolved.salary_split || { base: 0.4, post: 0.4, perf: 0.2 };
   const base = contract_salary * split.base;
   const post = contract_salary * split.post;
   const perfCtx = Object.assign({ contract_salary, base, post }, perf_vars || {});
@@ -186,7 +198,8 @@ function computePayroll(stat, params) {
   const gross = base + post + perf + Number(additions) - Number(deductions);
   const sb = social_base !== undefined ? social_base : gross;
   const fb = fund_base !== undefined ? fund_base : gross;
-  const soc = calcSocial(stat, city, sb, { fund_base: fb });
+  const injuryRate = (resolved.injury_rate !== undefined) ? resolved.injury_rate : 0;
+  const soc = calcSocial(stat, city, sb, { fund_base: fb, injury_rate: injuryRate });
   const sa = sumSpecial(special_additional);
   const cumInc = cum_income + gross;
   const cumSoc = cum_social_per + soc.per_total;
@@ -194,12 +207,14 @@ function computePayroll(stat, params) {
   const cumSA = cum_special + sa;
   const iit = calcIIT(stat, cumInc, cumSoc, cumFund, cumSA, months, already_withheld);
   const net = gross - soc.per_total - soc.housing_fund.per_amt - iit.this_tax;
+  const companyTotal = round2(gross + soc.emp_total + soc.housing_fund.emp_amt);
   return {
     city, contract_salary, split,
     base: round2(base), post: round2(post), performance: round2(perf),
     additions: Number(additions), deductions: Number(deductions), gross: round2(gross),
     social: soc, special_additional_total: sa,
     iit, net: round2(net),
+    company_cost: { gross: round2(gross), employer_social: soc.emp_total, employer_fund: soc.housing_fund.emp_amt, injury_rate: injuryRate, total: companyTotal },
     ytd: { cum_income: round2(cumInc), cum_social_per: round2(cumSoc), cum_fund_per: round2(cumFund), cum_special: round2(cumSA) }
   };
 }
@@ -209,6 +224,10 @@ function validatePayroll(r) {
   if (Math.abs(recomposed - r.gross) > 0.01) issues.push('应发工资重组不一致: base+post+perf+add-ded=' + recomposed + ' vs gross=' + r.gross);
   const netRecompute = round2(r.gross - r.social.per_total - r.social.housing_fund.per_amt - r.iit.this_tax);
   if (Math.abs(netRecompute - r.net) > 0.01) issues.push('实发工资不一致: ' + netRecompute + ' vs ' + r.net);
+  if (r.company_cost) {
+    const companyRecompute = round2(r.gross + r.social.emp_total + r.social.housing_fund.emp_amt);
+    if (Math.abs(companyRecompute - r.company_cost.total) > 0.01) issues.push('公司总人力成本不一致: ' + companyRecompute + ' vs ' + r.company_cost.total);
+  }
   if (r.gross < 0) issues.push('应发工资为负');
   if (r.net < 0) issues.push('实发工资为负（工资不足以抵扣扣款/税）');
   if (r.iit.cum_taxable < 0 && r.iit.this_tax > 0) issues.push('累计应纳税所得额为负但本期有税，逻辑异常');
@@ -241,7 +260,7 @@ function listTools() {
     { name: 'import_payroll_table', description: '通用表头适配：推断各企业表头→规范字段映射，标注置信度、未匹配项、缺失必填项，输出前 2 行归一化样例。支持 hint_map 强制覆盖。', inputSchema: { type: 'object', properties: { rows: { type: 'array', description: '原始表格行（对象数组或二维数组，二维需首行为表头）' }, hint_map: { type: 'object', description: '可选：{原表头: 规范字段} 强制映射' } } } },
     { name: 'load_company_profile', description: '读取企业配置（属地/社保公积金比例/薪资拆分比/免税项/舍入/专项附加来源）。', inputSchema: { type: 'object', properties: {} } },
     { name: 'save_company_profile', description: '保存企业配置到本地文件（PII/规则仅存本机）。', inputSchema: { type: 'object', properties: { profile: { type: 'object', description: '企业配置对象' } } } },
-    { name: 'calc_social_insurance', description: '法定五险一金计算：基数 clamps 至上下限，输出单位/个人分项。公司无关。', inputSchema: { type: 'object', properties: { city: { type: 'string' }, base: { type: 'number', description: '缴费基数（通常为应发或社保基数）' }, fund_base: { type: 'number', description: '可选：公积金基数' } } } },
+    { name: 'calc_social_insurance', description: '法定五险一金计算：基数 clamps 至上下限，输出单位/个人分项；工伤按 injury_rate（企业/行业风险，仅单位）计入。支持公司总人力成本测算。', inputSchema: { type: 'object', properties: { city: { type: 'string' }, base: { type: 'number', description: '缴费基数（通常为应发或社保基数）' }, fund_base: { type: 'number', description: '可选：公积金基数' }, injury_rate: { type: 'number', description: '可选：工伤保险费率（单位，按行业风险，如 0.004）' } } } },
     { name: 'calc_iit', description: '个税累计预扣法：输入累计收入/累计社保个人/累计公积金个人/累计专项附加/月数/已预缴，输出本期税额与税率。', inputSchema: { type: 'object', properties: { cum_income: { type: 'number' }, cum_social_per: { type: 'number' }, cum_fund_per: { type: 'number' }, cum_special: { type: 'number' }, months: { type: 'number' }, already_withheld: { type: 'number' } } } },
     { name: 'compute_payroll', description: '算薪编排：标准工资按 profile 拆分 + 绩效(安全公式)→应发→社保→个税→实发，并累计 YTD。', inputSchema: { type: 'object', properties: { city: { type: 'string' }, contract_salary: { type: 'number' }, profile: { type: 'object', description: '可选，覆盖默认拆分比' }, perf_formula: { type: 'string', description: '可选：绩效公式，变量含 contract_salary/base/post 及 perf_vars' }, perf_vars: { type: 'object' }, additions: { type: 'number' }, deductions: { type: 'number' }, social_base: { type: 'number' }, fund_base: { type: 'number' }, cum_income: { type: 'number' }, cum_social_per: { type: 'number' }, cum_fund_per: { type: 'number' }, cum_special: { type: 'number' }, months: { type: 'number' }, already_withheld: { type: 'number' }, special_additional: { type: 'object' } } } },
     { name: 'validate_payroll', description: '校验算薪结果：应发/实发重组一致性、非负、税逻辑。', inputSchema: { type: 'object', properties: { result: { type: 'object', description: 'compute_payroll 的输出' } } } },
@@ -257,7 +276,7 @@ function dispatch(method, params) {
     case 'import_payroll_table': return importTable(syn, params.rows, params.hint_map);
     case 'load_company_profile': { const p = loadProfile(); return p || { ...defaultProfile(), _note: '未找到企业配置，返回默认模板' }; }
     case 'save_company_profile': return { saved: true, profile: saveProfile(params.profile) };
-    case 'calc_social_insurance': return calcSocial(stat, params.city, Number(params.base), { fund_base: params.fund_base });
+    case 'calc_social_insurance': return calcSocial(stat, params.city, Number(params.base), { fund_base: params.fund_base, injury_rate: params.injury_rate });
     case 'calc_iit': return calcIIT(stat, Number(params.cum_income), Number(params.cum_social_per), Number(params.cum_fund_per), Number(params.cum_special), Number(params.months), Number(params.already_withheld));
     case 'compute_payroll': return computePayroll(stat, params);
     case 'validate_payroll': return validatePayroll(params.result);
