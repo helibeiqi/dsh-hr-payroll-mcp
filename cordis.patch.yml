@@ -1,0 +1,15 @@
+- insert:
+    - path: plugins.mcp-servers
+      items:
+        - id: mcp-hr-payroll
+          name: hr-payroll
+          transport: stdio
+          command: !!js process.env.QUANT_MCP_NODE || process.execPath
+          args:
+            - "C:\\Users\\helib\\dsh-hr-payroll-mcp\\payroll-mcp-server.mjs"
+          cwd: "C:\\Users\\helib\\dsh-hr-payroll-mcp"
+          env:
+            PAYROLL_STATUTORY: "C:\\Users\\helib\\dsh-hr-payroll-mcp\\data\\statutory.json"
+            PAYROLL_SYNONYMS: "C:\\Users\\helib\\dsh-hr-payroll-mcp\\data\\column_synonyms.json"
+            PAYROLL_PROFILE: "C:\\Users\\helib\\dsh-hr-payroll-mcp\\data\\company_profile.json"
+          enabled: true
