@@ -1,0 +1,74 @@
+{
+  "_meta": {
+    "version": "2024-ref",
+    "updated": "2024-12",
+    "note": "参考值，非实时。社保/公积金比例与缴费基数上下限每年由各地人社局、医保局、住房公积金中心调整，使用前务必以属地当年官方文件为准。本文件仅供算法演示与离线计算，责任自负。",
+    "source": "公开资料整理（2024 年度参考口径），具体以各地官方公告为准",
+    "coverage": ["北京", "上海", "深圳"]
+  },
+  "iit": {
+    "threshold_monthly": 5000,
+    "withholding_levels": [
+      {"upper": 36000, "rate": 0.03, "quick": 0},
+      {"upper": 144000, "rate": 0.10, "quick": 2520},
+      {"upper": 300000, "rate": 0.20, "quick": 16920},
+      {"upper": 420000, "rate": 0.25, "quick": 31920},
+      {"upper": 660000, "rate": 0.30, "quick": 52920},
+      {"upper": 960000, "rate": 0.35, "quick": 85920},
+      {"upper": null, "rate": 0.45, "quick": 181920}
+    ]
+  },
+  "special_additional": {
+    "children_education": {"per_child_month": 1000, "note": "每个子女 1000 元/月"},
+    "continuing_education": {"degree_month": 400, "vocational_year": 3600, "note": "学历继续教育 400/月；职业资格 3600/年（约 300/月）"},
+    "critical_illness": {"threshold_year": 15000, "cap_year": 80000, "note": "据实扣除，超 15000 部分且 ≤80000/年"},
+    "housing_loan_interest": {"month": 1000, "note": "首套住房贷款利息 1000/月"},
+    "housing_rent": {"tier1_month": 1500, "tier2_month": 1100, "tier3_month": 800, "note": "直辖市/省会/计划单列市 1500；市辖区户籍人口>100 万 1100；其余 800"},
+    "elderly_care": {"only_child_month": 2000, "shared_each_month": 1000, "note": "独生子女 2000/月；非独生分摊每人 ≤1000/月"},
+    "infant_care": {"per_child_month": 1000, "note": "3 岁以下婴幼儿照护 1000/月/孩"}
+  },
+  "cities": {
+    "北京": {
+      "social_base_floor": 6821,
+      "social_base_cap": 35283,
+      "fund_base_floor": 2420,
+      "fund_base_cap": 35283,
+      "insurance": {
+        "养老": {"emp": 0.16, "per": 0.08},
+        "医疗": {"emp": 0.09, "per": 0.02, "per_fixed": 3, "note": "个人 2%+3 元大额医疗互助"},
+        "失业": {"emp": 0.005, "per": 0.005},
+        "工伤": {"emp": 0.004, "per": 0.0, "note": "按行业 0.2%~1.9%，示例取 0.4%"},
+        "生育": {"emp": 0.0, "per": 0.0, "note": "北京已并入医保"}
+      },
+      "fund": {"emp": 0.12, "per": 0.12, "note": "比例 5%-12% 企业自选，示例 12%"}
+    },
+    "上海": {
+      "social_base_floor": 7384,
+      "social_base_cap": 36921,
+      "fund_base_floor": 2690,
+      "fund_base_cap": 36921,
+      "insurance": {
+        "养老": {"emp": 0.16, "per": 0.08},
+        "医疗": {"emp": 0.09, "per": 0.02},
+        "失业": {"emp": 0.005, "per": 0.005},
+        "工伤": {"emp": 0.004, "per": 0.0, "note": "按行业 0.16%~1.52%，示例取 0.4%"},
+        "生育": {"emp": 0.01, "per": 0.0, "note": "上海生育未并入医保，单位 1%"}
+      },
+      "fund": {"emp": 0.07, "per": 0.07, "note": "比例 5%-7%，示例 7%"}
+    },
+    "深圳": {
+      "social_base_floor": 2360,
+      "social_base_cap": 28830,
+      "fund_base_floor": 2360,
+      "fund_base_cap": 43659,
+      "insurance": {
+        "养老": {"emp": 0.14, "per": 0.08, "note": "深圳单位养老 14%"},
+        "医疗": {"emp": 0.06, "per": 0.02, "note": "深圳医保单位约 6%"},
+        "失业": {"emp": 0.007, "per": 0.003},
+        "工伤": {"emp": 0.004, "per": 0.0, "note": "按行业 0.14%~1.14%，示例 0.4%"},
+        "生育": {"emp": 0.0045, "per": 0.0}
+      },
+      "fund": {"emp": 0.12, "per": 0.12, "note": "比例 5%-12%，示例 12%"}
+    }
+  }
+}
