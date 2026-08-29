@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "note": "列名同义词字典：用于将各企业五花八门的表头映射为本插件的规范字段。匹配时忽略大小写、空格、下划线、连字符、中英文括号与斜杠。新增企业表头时在此追加同义词即可，无需改代码。",
+    "canonical_fields": [
+      "name", "id_card", "employee_no", "department", "city",
+      "contract_salary", "base_salary", "post_salary", "performance",
+      "overtime", "allowance", "deduction",
+      "social_base", "fund_base", "month", "special_additional"
+    ]
+  },
+  "name": ["姓名", "名字", "员工姓名", "name", "employee_name", "xm", "人员姓名"],
+  "id_card": ["身份证", "身份证号", "身份证号码", "id_card", "idcard", "sfz", "证件号码", "证件号"],
+  "employee_no": ["工号", "员工编号", "职工编号", "employee_no", "emp_id", "job_no", "编号", "工号/编号"],
+  "department": ["部门", "department", "dept", "bm", "所属部门", "科室"],
+  "city": ["属地", "城市", "参保地", "城市/属地", "city", "location", "社保属地"],
+  "contract_salary": ["合同工资", "标准工资", "劳动合同工资", "contract_salary", "base_contract", "基准工资", "月薪标准"],
+  "base_salary": ["基本工资", "基本薪", "base_salary", "jbgz", "底薪", "基础工资"],
+  "post_salary": ["岗位工资", "职务工资", "post_salary", "gwgz", "职位工资"],
+  "performance": ["绩效", "绩效工资", "performance", "performance_salary", "jxgz", "考核工资", "绩效奖金"],
+  "overtime": ["加班费", "加班", "overtime", "jbgf", "加班工资"],
+  "allowance": ["补贴", "津贴", "allowance", "bt", "补贴津贴", "交通补贴", "餐补", "通讯补贴"],
+  "deduction": ["扣款", "罚款", "deduction", "kk", "事假扣款", "迟到扣款", "扣项"],
+  "social_base": ["社保基数", "社保缴费基数", "social_base", "sbjs", "五险基数"],
+  "fund_base": ["公积金基数", "fund_base", "gjjjs", "住房公积金属基数"],
+  "month": ["月份", "月", "month", "薪酬月份", "所属月份"],
+  "special_additional": ["专项附加", "专项附加扣除", "special_additional", "zxfl", "专项扣除"]
+}
