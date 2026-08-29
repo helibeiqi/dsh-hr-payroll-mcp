@@ -25,6 +25,7 @@ FILES = [
     'payroll-mcp-server.mjs',
     'data/statutory.json',
     'data/column_synonyms.json',
+    'data/company_profile.json',
     'package.json',
     'cordis.patch.yml',
     'README.md',
@@ -32,7 +33,7 @@ FILES = [
     '_selftest.py',
     '_deploy.py',
 ]
-TOPICS = ['dsh-plugin', 'deepseek-harness', 'hr', 'payroll', 'social-insurance', 'iit', '本地优先']
+TOPICS = ['dsh-plugin', 'deepseek-harness', 'hr', 'payroll', 'social-insurance', 'iit', 'local-first']
 
 def api(method, url, data=None):
     headers = {
