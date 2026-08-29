@@ -1,0 +1,30 @@
+{
+  "name": "dsh-hr-payroll-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "payroll-mcp-server.mjs",
+  "description": "通用 HR 算薪 MCP 服务：本地化法定社保/公积金/个税计算引擎 + 通用表头适配 + 企业配置 + 安全绩效公式求值（PII 不出机）",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/helibeiqi/dsh-hr-payroll-mcp.git"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "hr",
+    "payroll",
+    "social-insurance",
+    "housing-fund",
+    "iit",
+    "个税",
+    "算薪",
+    "本地优先",
+    "pii-local"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
