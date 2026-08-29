@@ -1,0 +1,10 @@
+{
+  "company": "示例企业（请替换为实际企业名）",
+  "city": "北京",
+  "salary_split": { "base": 0.4, "post": 0.4, "perf": 0.2 },
+  "rounding": "round2",
+  "special_additional_source": "per_employee",
+  "tax_exempt_dict": {},
+  "injury_rate": 0.004,
+  "note": "企业配置：属地/公积金比例/薪资拆分比/免税项/舍入/专项附加来源/工伤费率(按行业风险,仅单位缴纳)。工伤保险比例须按企业实际行业风险等级在属地经办机构核定的基准费率(约 0.2%~1.9%)填入 injury_rate；0.4% 仅为示例。本文件仅存本机，不上传。"
+}
