@@ -73,14 +73,21 @@ send({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"calc_social
 r = read_until(lambda i: i == 4)
 soc = json.loads(r["result"]["content"][0]["text"])
 check(abs(soc["per_total"]-2253) < 0.01, "社保个人合计=2253", f"实际 {soc['per_total']}")
-check(abs(soc["emp_total"]-3790) < 0.01, "社保单位合计=3790", f"实际 {soc['emp_total']}")
+check(abs(soc["emp_total"]-3750) < 0.01, "社保单位合计(不含工伤)=3750", f"实际 {soc['emp_total']}")
 check(soc["housing_fund"]["per_amt"]==1200, "公积金个人=1200")
+
+# 4c) 工伤按企业/行业费率计入（仅单位）
+send({"jsonrpc":"2.0","id":4.2,"method":"tools/call","params":{"name":"calc_social_insurance","arguments":{"city":"北京","base":10000,"injury_rate":0.004}}})
+r = read_until(lambda i: i == 4.2)
+soc = json.loads(r["result"]["content"][0]["text"])
+check(abs(soc["emp_total"]-3790) < 0.01, "含工伤(0.4%)单位合计=3790", f"实际 {soc['emp_total']}")
+check(soc["insurance"][-1]["item"]=="工伤" and soc["insurance"][-1]["employer_only"] is True, "工伤标记 employer_only")
 
 # 4b) 基数 clamps
 send({"jsonrpc":"2.0","id":4.1,"method":"tools/call","params":{"name":"calc_social_insurance","arguments":{"city":"北京","base":50000}}})
 r = read_until(lambda i: i == 4.1)
 soc = json.loads(r["result"]["content"][0]["text"])
-check(soc["social_base"]==35283, "基数 clamps 至上限 35283", f"实际 {soc['social_base']}")
+check(soc["social_base"]==35811, "基数 clamps 至上限 35811 (2025)", f"实际 {soc['social_base']}")
 
 # 5) calc_iit 累计预扣法
 send({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"calc_iit","arguments":{"cum_income":10000,"cum_social_per":2253,"cum_fund_per":1200,"cum_special":0,"months":1,"already_withheld":0}}})
@@ -99,6 +106,7 @@ check(pay["gross"]==10000, "应发=10000", f"实际 {pay['gross']}")
 check(pay["base"]==4000 and pay["post"]==4000 and pay["performance"]==2000, "拆分 4:4:2")
 check(abs(pay["net"]-6500.59) < 0.01, "实发=6500.59", f"实际 {pay['net']}")
 check(pay["ytd"]["cum_income"]==10000, "YTD 累计收入")
+check(abs(pay["company_cost"]["total"]-14990) < 0.01, "公司总人力成本=14990", f"实际 {pay['company_cost']['total']}")
 
 # 6b) 绩效公式安全求值
 send({"jsonrpc":"2.0","id":6.1,"method":"tools/call","params":{"name":"compute_payroll","arguments":{
@@ -126,8 +134,8 @@ check(slip["json"]["员工"]=="张三", "工资条员工名")
 send({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"refresh_statutory","arguments":{}}})
 r = read_until(lambda i: i == 9)
 rf = json.loads(r["result"]["content"][0]["text"])
-check(rf["version"]=="2024-ref", "参数库版本 2024-ref")
-check(rf["cities"]==["北京","上海","深圳"], "覆盖城市 3")
+check(rf["version"]=="2025-ref", "参数库版本 2025-ref")
+check(rf["cities"]==["北京","上海","深圳","广州","杭州","成都","武汉","天津","重庆","苏州","南京","西安"], "覆盖城市 12")
 
 proc.terminate()
 print(f"\n全部通过: {passed} 项断言 OK")
